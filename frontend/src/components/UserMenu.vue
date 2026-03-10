@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import {useUserStore} from "@/stores/user";
 import UserSpaceIndex from "@/components/navbar/icons/UserSpaceIndex.vue";
 import UserProfileIcon from "@/components/navbar/icons/UserProfileIcon.vue";

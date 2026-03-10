@@ -6,7 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 class RefreshTokenView(APIView):
     def post(self, request, *args, **kwargs):
         try:
-            refresh_token = request.COOKIES.get['refresh_token']
+            refresh_token = request.COOKIES.get('refresh_token')
             if not refresh_token:
                 return Response({
                     'result': 'refresh token不存在'

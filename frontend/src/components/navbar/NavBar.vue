@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 
 import MenuIcon from "@/components/navbar/icons/MenuIcon.vue";
 import HomePageIcon from "@/components/navbar/icons/HomePageIcon.vue";
@@ -39,10 +39,10 @@ const user = useUserStore()
           <CreateIcon />
           创作
         </RouterLink>
-        <RouterLink v-if="!user.isLogin()" :to="{name: 'user-account-login-index'}" active-class="btn-active" class="btn btn-ghost text-lg">
+        <RouterLink v-if="user.hasPulledUserInfo && !user.isLogin()" :to="{name: 'user-account-login-index'}" active-class="btn-active" class="btn btn-ghost text-lg">
           登陆
         </RouterLink>
-        <UserMenu v-else />
+        <UserMenu v-else-if="user.isLogin()" />
       </div>
     </nav>
 <!--slot对应的是App.vue中的<RouterView/>-->
