@@ -26,7 +26,8 @@ class RegisterView(APIView):
             response = Response({
                 'result': 'success',
                 'access': str(refresh.access_token),
-                'user_id': user.username,
+                'user_id': user.id,
+                'username': user.username,
                 'photo': user_profile.photo.url,  # 必须加url
                 'profile': user_profile.profile,
             })
