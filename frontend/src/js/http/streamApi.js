@@ -59,7 +59,7 @@ export default async function streamApi(url, options = {}) {
                     const json = JSON.parse(msg.data);
                     if (options.onmessage) options.onmessage(json, false);
                 } catch (e) {
-                    console.error("流解析失败:", e);
+                    // console.error("流解析失败:", e);
                 }
             },
 
