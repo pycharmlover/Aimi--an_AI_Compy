@@ -18,6 +18,7 @@ class ChatGraph:
             """当需要查询精确时间时，调用此函数。返回格式为：[年-月-日 时:分:秒]"""
             return localtime(now()).strftime('%Y-%m-%d %H:%M:%S')
 
+        
 
         tools = [get_time]
 

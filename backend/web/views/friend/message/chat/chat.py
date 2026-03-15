@@ -9,6 +9,8 @@ from rest_framework.views import APIView
 
 from web.models.friend import Friend, Message, SystemPrompt
 from web.views.friend.message.chat.graph import ChatGraph
+from web.views.friend.message.memory.update import update_memory
+
 
 class SSERenderer(BaseRenderer):
     media_type = 'text/event-stream'
@@ -16,7 +18,7 @@ class SSERenderer(BaseRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
 
-# 添加系统提示词和短期记忆（多轮对话）
+
 def add_system_prompt(state, friend):
     msgs = state['messages']
     system_prompts = SystemPrompt.objects.filter(title='回复').order_by('order_number')
@@ -38,6 +40,7 @@ def add_recent_messages(state, friend):
         messages.append(AIMessage(m.output))
     return {'messages': msgs[:1] + messages + msgs[-1:]}
 
+
 class MessageChatView(APIView):
     permission_classes = [IsAuthenticated]
     renderer_classes = [SSERenderer]
@@ -51,7 +54,7 @@ class MessageChatView(APIView):
         friends = Friend.objects.filter(pk=friend_id, me__user=request.user)
         if not friends.exists():
             return Response({
-                'resutl': '好友不存在'
+                'result': '好友不存在'
             })
         friend = friends.first()
         app = ChatGraph.create_app()
@@ -62,7 +65,6 @@ class MessageChatView(APIView):
         inputs = add_system_prompt(inputs, friend)
         inputs = add_recent_messages(inputs, friend)
 
-        # SSE 流式实现
         def event_stream():
             full_output = ''
             full_usage = {}
@@ -70,16 +72,16 @@ class MessageChatView(APIView):
                 if isinstance(msg, BaseMessageChunk):
                     if msg.content:
                         full_output += msg.content
-                        yield f"data: {json.dumps({'content': msg.content}, ensure_ascii=False)}\n\n"
+                        yield f'data: {json.dumps({'content': msg.content}, ensure_ascii=False)}\n\n'
                     if hasattr(msg, 'usage_metadata') and msg.usage_metadata:
                         full_usage = msg.usage_metadata
-            yield "data: [DONE]\n\n"
+            yield 'data: [DONE]\n\n'
             input_tokens = full_usage.get('input_tokens', 0)
             output_tokens = full_usage.get('output_tokens', 0)
             total_tokens = full_usage.get('total_tokens', 0)
             Message.objects.create(
                 friend=friend,
-                user_message=message[:1000],
+                user_message=message[:500],
                 input=json.dumps(
                     [m.model_dump() for m in inputs['messages']],
                     ensure_ascii=False,
@@ -89,10 +91,9 @@ class MessageChatView(APIView):
                 output_tokens=output_tokens,
                 total_tokens=total_tokens,
             )
+            if Message.objects.filter(friend=friend).count() % 1 == 0:
+                update_memory(friend)
 
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Cache-Control'] = 'no-cache'
         return response
-
-
-
