@@ -35,7 +35,7 @@ const startRecording = async () => {
 
     await vadInstance.start();
   } catch (e) {
-    console.error("VAD 初始化失败:", e);
+    // console.error("VAD 初始化失败:", e);
   }
 };
 // 将 Float32 转 PCM 16-bit
@@ -60,7 +60,7 @@ const sendToBackend = async (arrayBuffer) => {
       emit('send', null, data.text)
     }
   } catch (err) {
-    console.error(err)
+    // console.error(err)
   }
 
 };
