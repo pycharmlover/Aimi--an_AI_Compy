@@ -110,7 +110,7 @@ class TextToSpeechView(APIView):
                         "format": "mp3",
                         "sample_rate": 22050,
                         "volume": 50,
-                        "rate": 1.20,
+                        "rate": 1.10,
                         "pitch": 1
                     },
                     "input": {}

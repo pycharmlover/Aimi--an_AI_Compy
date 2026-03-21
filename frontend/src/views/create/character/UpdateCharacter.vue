@@ -55,8 +55,8 @@ async function handleUpdate() {
     errorMessage.value = '头像不能为空'
   } else if (!name) {
     errorMessage.value = '名字不能为空'
-  } else if (!voice) {
-    errorMessage.value = '音色不能为空'
+  } else if (!voice || voice === 'custom') {
+    errorMessage.value = '请选择音色'
   } else if (!profile) {
     errorMessage.value = '角色介绍不能为空'
   } else if (!backgroundImage) {

@@ -16,8 +16,10 @@ def background_image_upload_to(instance, filename):
     return f'character/background_images/{instance.author.user_id}_{filename}'
 
 class Voice(models.Model):
+    author = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     voice_id = models.CharField(max_length=100)
+    is_public = models.BooleanField(default=True)
     create_time = models.DateTimeField(default=now)
 
     def __str__(self):

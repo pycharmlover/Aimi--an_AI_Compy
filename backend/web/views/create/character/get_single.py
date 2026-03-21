@@ -12,7 +12,11 @@ class GetSingleCharacterView(APIView):
             character = request.query_params.get('character_id')
             character = Character.objects.get(pk=character, author__user=request.user)
 
-            voices_raw = Voice.objects.order_by('id')
+            # 获取公开音色 + 当前用户的私有音色
+            public_voices = Voice.objects.filter(is_public=True).order_by('id')
+            user_voices = Voice.objects.filter(author__user=request.user, is_public=False).order_by('id')
+            voices_raw = list(public_voices) + list(user_voices)
+            
             voices = []
             for v in voices_raw:
                 voices.append({
@@ -28,7 +32,7 @@ class GetSingleCharacterView(APIView):
                     'profile': character.profile,
                     'photo': character.photo.url,
                     'background_image': character.background_image.url,
-                    'voice_id': character.voice.id, #用的是数据库中的id，不是阿里云中的voice_id
+                    'voice_id': character.voice.id,
                 },
                 'voices': voices,
             })

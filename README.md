@@ -1,4 +1,4 @@
-# AIFriends
+# Aimi
 
 一个 AI 虚拟好友平台，用户可以创建自定义 AI 角色，并与其进行实时语音 / 文字聊天。后端基于 Django + LangChain，前端基于 Vue 3 + Vite。
 
@@ -40,7 +40,12 @@ AIFriends/
 │   │   │   │       ├── get_single.py     # 获取单个角色详情
 │   │   │   │       ├── get_list.py       # 获取角色列表
 │   │   │   │       └── voice/
-│   │   │   │           └── get_list.py   # 获取可用 TTS 音色列表
+│   │   │   │           ├── get_list.py   # 获取可用 TTS 音色列表（公开 + 当前用户私有）
+│   │   │   │           └── custom/       # 自定义音色管理
+│   │   │   │               ├── create_custom.py  # 上传 mp3 -> 调用复刻 API -> 存库
+│   │   │   │               ├── create_voice.py   # 调用阿里云语音复刻 API
+│   │   │   │               ├── list_voice.py     # 获取自定义音色列表
+│   │   │   │               └── remove_voice.py   # 删除自定义音色
 │   │   │   ├── friend/                   # 好友（用户-角色关系）接口
 │   │   │   │   ├── get_or_create.py      # 获取或创建好友关系
 │   │   │   │   ├── get_list.py           # 获取好友列表
@@ -158,8 +163,17 @@ AIFriends/
     │       │   └── FriendIndex.vue       # 好友页（左侧好友列表 + 右侧聊天窗口）
     │       ├── create/
     │       │   ├── CreateIndex.vue       # 角色管理页（我创建的角色列表 + 新建入口）
-    │       │   └── character/
-    │       │       └── UpdateCharacter.vue  # 角色信息编辑页（名称、头像、音色、人设等）
+    │       │   ├── character/
+    │       │   │   └── UpdateCharacter.vue  # 角色信息编辑页（名称、头像、音色、人设等）
+    │       │   └── components/           # 角色创建 / 编辑表单组件
+    │       │       ├── Photo.vue         # 头像上传
+    │       │       ├── Name.vue          # 角色名称
+    │       │       ├── Profile.vue       # 角色人设
+    │       │       ├── BackgroundImage.vue  # 背景图上传
+    │       │       ├── Voice.vue         # 音色选择（含自定义音色选项）
+    │       │       ├── UploadVoice.vue   # 自定义音色上传组件
+    │       │       └── icons/
+    │       │           └── UploadIcon.vue    # 上传图标
     │       ├── user/
     │       │   ├── account/
     │       │   │   ├── LoginIndex.vue    # 登录页
@@ -210,6 +224,7 @@ AIFriends/
 ## 主要功能
 
 - **角色创建**：用户可自定义 AI 角色的名称、头像、背景图、人设描述、TTS 音色
+- **自定义音色**：在创建 / 编辑角色时，可上传一份**时长8s左右**的 mp3 文件进行语音复刻，生成私有音色供当前用户使用
 - **好友系统**：将角色添加为好友，维护独立的对话上下文与长期记忆
 - **流式对话**：LLM 推理与 TTS 合成并发执行，通过 SSE 同步向前端推送文字与音频
 - **语音输入**：前端集成 Silero VAD 自动检测语音端点，录音完成后调用后端 ASR 接口转写为文字

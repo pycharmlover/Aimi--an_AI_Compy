@@ -39,7 +39,7 @@ function handleSearch() {
           <label for="my-drawer-4" aria-label="open sidebar" class="btn btn-square btn-ghost">
             <MenuIcon />
           </label>
-          <div class="px-2 font-bold text-xl">AIFriends</div>
+          <div class="px-2 font-bold text-xl">Aimi</div>
         </div>
         <div class="navbar-center w-4/5 max-w-180 flex justify-center">
           <form @submit.prevent="handleSearch" class="join w-4/5 flex justify-center">
