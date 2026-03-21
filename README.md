@@ -218,6 +218,7 @@ AIFriends/
 | AI 对话 | LangChain / LangGraph |
 | 语音合成（TTS） | CosyVoice v3（通过 WebSocket 与 LLM 并发流式合成） |
 | 语音识别（ASR） | Gummy Realtime（通过 WebSocket 实时转写 PCM 音频） |
+| 多模态视觉推理 | Qwen3.5-Flash（通过 LangChain 接收实时视频流 + 文本，返回推理结果） |
 | 向量数据库 | LanceDB（本地存储，用于 RAG 长期记忆） |
 | 数据库 | SQLite（开发） |
 | 跨域 | django-cors-headers |
