@@ -6,6 +6,7 @@ import CameraIcon from "../../icons/CameraIcon.vue";
 import {onUnmounted, ref, useTemplateRef} from "vue";
 import streamApi from "../../../../js/http/streamApi.js";
 import visionApi from "../../../../js/http/visionApi.js";
+import api from "../../../../js/http/api.js";
 import Microphone from "./Microphone.vue";
 
 const props = defineProps(['friendId'])
@@ -190,14 +191,11 @@ async function handleVisionFrame(imageBase64, prompt) {
       props.friendId,
       imageBase64,
       prompt,
+      false,
       (data, isDone) => {
-        // console.log(`[DEBUG] 视觉推理回调 - isDone: ${isDone}, data: ${JSON.stringify(data).substring(0, 100)}`);
         if (data.content) {
-          // console.log(`[DEBUG] 添加推理结果到聊天: ${data.content.substring(0, 50)}`);
           emit('addToLastMessage', data.content)
         }
-        
-        // 推理完成，重置标志
         if (isDone) {
           visionInProgress = false
         }
@@ -244,6 +242,9 @@ async function handleSend(event, audio_msg) {
   }
   if (!content) return
 
+  // 若正在联网搜索，先取消
+  cancelWebSearch()
+
   // 初始化音频流（文本和摄像头模式都需要）
   initAudioStream()
 
@@ -265,14 +266,19 @@ async function handleSend(event, audio_msg) {
       
       // 触发视觉推理
       try {
+        if (enableWebSearch.value) {
+          isWebSearching.value = true
+        }
         await visionApi(
           props.friendId,
           imageBase64,
           content,
+          enableWebSearch.value,
           (data, isDone) => {
             if (curId !== processId) return
             
             if (data.content) {
+              isWebSearching.value = false
               emit('addToLastMessage', data.content)
             }
             if (data.audio) {
@@ -280,11 +286,11 @@ async function handleSend(event, audio_msg) {
             }
           },
           (err) => {
-            // console.error(`[DEBUG] 视觉推理失败: ${err.message}`);
+            isWebSearching.value = false
           }
         )
       } catch (err) {
-        // console.error(`[DEBUG] 视觉推理错误: ${err.message}`);
+        isWebSearching.value = false
       }
     }
     return
@@ -320,7 +326,15 @@ async function handleSend(event, audio_msg) {
   }
 }
 
+function cancelWebSearch() {
+  if (isWebSearching.value) {
+    api.post('/api/friend/message/cancel/', {}).catch(() => {})
+    isWebSearching.value = false
+  }
+}
+
 function close() {
+  cancelWebSearch()
   ++ processId
   showMic.value = false
   stopCamera()

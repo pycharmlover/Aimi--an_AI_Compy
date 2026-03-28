@@ -1,17 +1,26 @@
+import logging
 
 from .browser_executor import run_browser_search
 
-def build_web_context_for_query(query: str) -> str:
+logger = logging.getLogger(__name__)
+
+
+def build_web_context_for_query(query: str, cancel_check=None) -> str:
     if not query:
         return ''
 
+    if cancel_check and cancel_check():
+        logger.info('Web search cancelled before start')
+        return ''
+
     try:
-        final_text = run_browser_search(query)
-        print("\n===== 填表结果 =====")
-        print(final_text)
-        print("===================\n")
+        final_text = run_browser_search(query, cancel_check=cancel_check)
     except Exception:
-        print('Web search failed, falling back to empty context')
+        logger.exception('Web search failed, falling back to empty context')
+        return ''
+
+    if cancel_check and cancel_check():
+        logger.info('Web search cancelled after completion')
         return ''
 
     if not final_text:

@@ -1,5 +1,5 @@
 import asyncio
-import json
+import logging
 import os
 
 os.environ.setdefault("BROWSER_USE_LOGGING_LEVEL", "warning")
@@ -8,7 +8,7 @@ os.environ.setdefault("ANONYMIZED_TELEMETRY", "false")
 from browser_use import Agent, Browser, ChatOpenAI
 from langchain_openai import ChatOpenAI as LangChainOpenAI
 
-_browser = Browser()
+logger = logging.getLogger(__name__)
 
 
 def _build_browser_llm():
@@ -52,8 +52,11 @@ def _decompose_query(query: str) -> list[str]:
     """调用小模型把用户 query 拆解为 1~N 个子查询，返回列表。"""
     llm = _build_decompose_llm()
     prompt = f"""将下面的用户问题拆解为若干个独立的、适合直接搜索引擎搜索的子查询。
-每个子查询单独一行，不带编号或符号前缀，不做任何解释。
-如果问题本身已经足够简单无需拆解，只输出原问题一行即可。
+规则：
+- 每个子查询单独一行，不带编号或符号前缀，不做任何解释。
+- 子查询数量不超过 3 个。
+- 如果问题本身已经足够简单或只涉及单一事实，只输出原问题一行即可。
+- 不要把同一个问题改写成多个近义版本，只有在问题真正涉及多个独立信息点时才拆解。
 
 用户问题：{query}"""
 
@@ -62,7 +65,7 @@ def _decompose_query(query: str) -> list[str]:
     subqueries = [line.strip() for line in raw.splitlines() if line.strip()]
     if not subqueries:
         subqueries = [query]
-    print('Query decomposed into %d subqueries: %s', len(subqueries), subqueries)
+    logger.info('Query decomposed into %d subqueries: %s', len(subqueries), subqueries)
     return subqueries
 
 
@@ -89,27 +92,71 @@ def _build_search_answer_task(query: str) -> str:
 - <标题> | <URL>""".strip()
 
 
-async def _run_browser_search_async(query: str) -> str:
-    llm = _build_browser_llm()
-    agent = Agent(
-        task=_build_search_answer_task(query),
-        llm=llm,
-        browser=_browser,
-        use_vision=os.getenv('USE_VISION', 'false').lower() == 'true',
-        max_steps=int(os.getenv('MAX_STEPS', '30')),
-    )
-    result = await agent.run()
-    return result.final_result() or ''
+async def _run_browser_search_async(query: str, cancel_check=None) -> str:
+    """每次搜索创建独立的 Browser 实例，避免复用导致的状态污染。"""
+    browser = Browser()
+    agent_task = None
+    try:
+        llm = _build_browser_llm()
+        agent = Agent(
+            task=_build_search_answer_task(query),
+            llm=llm,
+            browser=browser,
+            use_vision=os.getenv('USE_VISION', 'false').lower() == 'true',
+            max_steps=int(os.getenv('MAX_STEPS', '30')),
+        )
+
+        loop = asyncio.get_running_loop()
+        agent_task = loop.create_task(agent.run())
+
+        # 监控取消信号，每 0.5 秒检查一次
+        async def _watch_cancel():
+            while not agent_task.done():
+                await asyncio.sleep(0.5)
+                if cancel_check and cancel_check():
+                    logger.info('Cancel signal received, cancelling agent task')
+                    agent_task.cancel()
+                    return
+
+        if cancel_check:
+            watcher = loop.create_task(_watch_cancel())
+        else:
+            watcher = None
+
+        try:
+            result = await agent_task
+            return result.final_result() or ''
+        except asyncio.CancelledError:
+            logger.info('Agent task was cancelled')
+            return ''
+        finally:
+            if watcher and not watcher.done():
+                watcher.cancel()
+                try:
+                    await watcher
+                except asyncio.CancelledError:
+                    pass
+    finally:
+        try:
+            await browser.kill()
+        except Exception:
+            pass
 
 
-async def _run_all_searches_async(subqueries: list[str]) -> str:
+async def _run_all_searches_async(subqueries: list[str], cancel_check=None) -> str:
     parts = []
     for i, q in enumerate(subqueries, 1):
+        if cancel_check and cancel_check():
+            logger.info('Search cancelled before subquery %d', i)
+            break
         try:
-            r = await _run_browser_search_async(q)
+            r = await _run_browser_search_async(q, cancel_check=cancel_check)
         except Exception as e:
-            print('Warning: Subquery %d failed: %s' % (i, e))
+            logger.warning('Subquery %d failed: %s', i, e)
             continue
+        if cancel_check and cancel_check():
+            logger.info('Search cancelled after subquery %d', i)
+            break
         if r:
             if len(subqueries) > 1:
                 parts.append(f'【子查询 {i}：{q}】\n{r}')
@@ -119,6 +166,6 @@ async def _run_all_searches_async(subqueries: list[str]) -> str:
     return '\n\n'.join(parts)
 
 
-def run_browser_search(query: str) -> str:
+def run_browser_search(query: str, cancel_check=None) -> str:
     subqueries = _decompose_query(query)
-    return asyncio.run(_run_all_searches_async(subqueries))
+    return asyncio.run(_run_all_searches_async(subqueries, cancel_check=cancel_check))

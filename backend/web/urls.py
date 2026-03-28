@@ -13,6 +13,7 @@ from web.views.friend.message.asr.asr import ASRView
 from web.views.friend.message.tts.tts import TextToSpeechView
 from web.views.friend.message.vision.stream_vision import StreamVisionView
 from web.views.friend.message.chat.chat import MessageChatView
+from web.views.friend.message.cancel import CancelSearchView
 from web.views.friend.message.get_history import GetHistoryView
 from web.views.friend.remove import RemoveFriendView
 from web.views.homepage.index import HomepageIndexView
@@ -43,6 +44,7 @@ urlpatterns = [
     path('api/friend/get_list/',GetListFriendView.as_view()),
     path('api/friend/remove/',RemoveFriendView.as_view()),
     path('api/friend/message/chat/', MessageChatView.as_view()),
+    path('api/friend/message/cancel/', CancelSearchView.as_view()),
     path('api/friend/message/get_history/',GetHistoryView.as_view()),
     path('api/friend/message/asr/asr/', ASRView.as_view()),
     path('api/friend/message/tts/', TextToSpeechView.as_view()),

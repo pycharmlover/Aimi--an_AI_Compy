@@ -13,7 +13,7 @@ const BASE_URL = CONFIG_API.HTTP_URL
  * @param {function} onmessage 消息回调
  * @param {function} onerror 错误回调
  */
-export default async function visionApi(friendId, imageBase64, textPrompt, onmessage, onerror) {
+export default async function visionApi(friendId, imageBase64, textPrompt, enableWebSearch, onmessage, onerror) {
     const userStore = useUserStore();
 
 
@@ -28,6 +28,7 @@ export default async function visionApi(friendId, imageBase64, textPrompt, onmes
                 friend_id: friendId,
                 image: imageBase64,
                 text: textPrompt,
+                enable_web_search: enableWebSearch,
             }),
 
             openWhenHidden: true,
