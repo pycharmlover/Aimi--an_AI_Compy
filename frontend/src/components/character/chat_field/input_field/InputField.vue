@@ -16,6 +16,8 @@ const canvasRef = useTemplateRef('canvas-ref')
 const message = ref('')
 let processId = 0
 const showMic = ref(false)
+const enableWebSearch = ref(false)
+const isWebSearching = ref(false)
 const cameraActive = ref(false)
 let stream = ref(null)
 let frameInterval = ref(null)
@@ -289,15 +291,20 @@ async function handleSend(event, audio_msg) {
   }
 
   try {
+    if (enableWebSearch.value) {
+      isWebSearching.value = true
+    }
     await streamApi('/api/friend/message/chat/', {
       body: {
         friend_id: props.friendId,
         message: content,
+        enable_web_search: enableWebSearch.value,
       },
       onmessage(data, isDone) {
         if (curId !== processId) return
 
         if (data.content) {
+          isWebSearching.value = false
           emit('addToLastMessage', data.content)
         }
         if (data.audio) {
@@ -305,9 +312,11 @@ async function handleSend(event, audio_msg) {
         }
       },
       onerror(err) {
+        isWebSearching.value = false
       },
     })
   } catch (err) {
+    isWebSearching.value = false
   }
 }
 
@@ -355,6 +364,16 @@ defineExpose({
       </div>
     </div>
 
+    <!-- 联网搜索中提示 -->
+    <div v-if="isWebSearching" class="flex items-center gap-2 px-3 py-1.5 text-white/70 text-sm">
+      <div class="spinner-sm" aria-label="搜索中">
+        <span v-for="n in 12" :key="n" class="spinner-sm-line"
+          :style="{ transform: `rotate(${(n - 1) * 30}deg) translateY(-10px)` }"
+        />
+      </div>
+      正在搜索网页，请稍后...
+    </div>
+
     <!-- 输入框 -->
     <form @submit.prevent="handleSend" class="h-12 flex items-center">
       <input
@@ -369,6 +388,22 @@ defineExpose({
       </div>
       <div @click="showMic = true" class="absolute right-10 w-8 h-8 flex justify-center items-center cursor-pointer">
         <MicIcon />
+      </div>
+      <div
+        @click="enableWebSearch = !enableWebSearch"
+        :class="[
+          'absolute right-26 w-8 h-8 flex justify-center items-center cursor-pointer rounded-full transition-colors',
+          enableWebSearch ? 'text-emerald-300' : 'text-white/40'
+        ]"
+        title="联网搜索"
+      >
+        <!-- 小地球 SVG -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M12 4C9.8 6.2 8.5 9 8.5 12C8.5 15 9.8 17.8 12 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M12 4C14.2 6.2 15.5 9 15.5 12C15.5 15 14.2 17.8 12 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M4 12H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
       </div>
       <div @click="toggleCamera" class="absolute right-18 w-8 h-8 flex justify-center items-center cursor-pointer">
         <CameraIcon />
@@ -385,5 +420,42 @@ defineExpose({
 </template>
 
 <style scoped>
+.spinner-sm {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
 
+.spinner-sm-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2.5px;
+  height: 7px;
+  margin-left: -1.25px;
+  margin-top: -3.5px;
+  border-radius: 999px;
+  background: currentColor;
+  transform-origin: center 10px;
+  animation: spinner-fade 1.2s linear infinite;
+}
+
+.spinner-sm-line:nth-child(1)  { animation-delay: -1.1s; }
+.spinner-sm-line:nth-child(2)  { animation-delay: -1.0s; }
+.spinner-sm-line:nth-child(3)  { animation-delay: -0.9s; }
+.spinner-sm-line:nth-child(4)  { animation-delay: -0.8s; }
+.spinner-sm-line:nth-child(5)  { animation-delay: -0.7s; }
+.spinner-sm-line:nth-child(6)  { animation-delay: -0.6s; }
+.spinner-sm-line:nth-child(7)  { animation-delay: -0.5s; }
+.spinner-sm-line:nth-child(8)  { animation-delay: -0.4s; }
+.spinner-sm-line:nth-child(9)  { animation-delay: -0.3s; }
+.spinner-sm-line:nth-child(10) { animation-delay: -0.2s; }
+.spinner-sm-line:nth-child(11) { animation-delay: -0.1s; }
+.spinner-sm-line:nth-child(12) { animation-delay:    0s; }
+
+@keyframes spinner-fade {
+  0%   { opacity: 1; }
+  100% { opacity: 0.15; }
+}
 </style>

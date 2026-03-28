@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import logging
 import os
 import threading
 import uuid
@@ -15,8 +16,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from web.models.friend import Friend, Message, SystemPrompt
+from web.services.web_search import build_web_context_for_query
 from web.views.friend.message.chat.graph import ChatGraph
 from web.views.friend.message.memory.update import update_memory
+
+logger = logging.getLogger(__name__)
 
 
 class SSERenderer(BaseRenderer):
@@ -24,6 +28,16 @@ class SSERenderer(BaseRenderer):
     format = 'txt'
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
+
+
+def parse_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+    if isinstance(value, int):
+        return value != 0
+    return False
 
 
 def add_system_prompt(state, friend):
@@ -48,12 +62,27 @@ def add_recent_messages(state, friend):
     return {'messages': msgs[:1] + messages + msgs[-1:]}
 
 
+def add_web_context(state, web_context):
+    if not web_context:
+        return state
+
+    # 把联网检索内容追加到第一条 SystemMessage 的末尾，
+    # 避免被 add_recent_messages 的切片逻辑丢弃
+    msgs = list(state['messages'])
+    if msgs and isinstance(msgs[0], SystemMessage):
+        msgs[0] = SystemMessage(msgs[0].content + '\n\n' + web_context)
+    else:
+        msgs = [SystemMessage(web_context)] + msgs
+    return {'messages': msgs}
+
+
 class MessageChatView(APIView):
     permission_classes = [IsAuthenticated]
     renderer_classes = [SSERenderer]
     def post(self, request):
         friend_id = request.data['friend_id']
         message = request.data['message'].strip()
+        enable_web_search = parse_bool(request.data.get('enable_web_search', False))
         if not message:
             return Response({
                 'result': '消息不能为空'
@@ -64,12 +93,26 @@ class MessageChatView(APIView):
                 'result': '好友不存在'
             })
         friend = friends.first()
+
+        web_context = ''
+        if enable_web_search:
+            web_context = build_web_context_for_query(message)
+
+        logger.info(
+            'chat request friend_id=%s user_id=%s enable_web_search=%s web_search_success=%s',
+            friend_id,
+            request.user.id,
+            enable_web_search,
+            bool(web_context),
+        )
+
         app = ChatGraph.create_app()
 
         inputs = {
             'messages': [HumanMessage(message)]
         }
         inputs = add_system_prompt(inputs, friend)
+        inputs = add_web_context(inputs, web_context)
         inputs = add_recent_messages(inputs, friend)
 
         response = StreamingHttpResponse(
