@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 
 os.environ.setdefault("BROWSER_USE_LOGGING_LEVEL", "warning")
@@ -7,9 +6,6 @@ os.environ.setdefault("ANONYMIZED_TELEMETRY", "false")
 
 from browser_use import Agent, Browser, ChatOpenAI
 from langchain_openai import ChatOpenAI as LangChainOpenAI
-
-logger = logging.getLogger(__name__)
-
 
 def _build_browser_llm():
     api_key = os.getenv('API_KEY')
@@ -65,7 +61,6 @@ def _decompose_query(query: str) -> list[str]:
     subqueries = [line.strip() for line in raw.splitlines() if line.strip()]
     if not subqueries:
         subqueries = [query]
-    logger.info('Query decomposed into %d subqueries: %s', len(subqueries), subqueries)
     return subqueries
 
 
@@ -114,7 +109,6 @@ async def _run_browser_search_async(query: str, cancel_check=None) -> str:
             while not agent_task.done():
                 await asyncio.sleep(0.5)
                 if cancel_check and cancel_check():
-                    logger.info('Cancel signal received, cancelling agent task')
                     agent_task.cancel()
                     return
 
@@ -127,7 +121,6 @@ async def _run_browser_search_async(query: str, cancel_check=None) -> str:
             result = await agent_task
             return result.final_result() or ''
         except asyncio.CancelledError:
-            logger.info('Agent task was cancelled')
             return ''
         finally:
             if watcher and not watcher.done():
@@ -147,15 +140,12 @@ async def _run_all_searches_async(subqueries: list[str], cancel_check=None) -> s
     parts = []
     for i, q in enumerate(subqueries, 1):
         if cancel_check and cancel_check():
-            logger.info('Search cancelled before subquery %d', i)
             break
         try:
             r = await _run_browser_search_async(q, cancel_check=cancel_check)
         except Exception as e:
-            logger.warning('Subquery %d failed: %s', i, e)
             continue
         if cancel_check and cancel_check():
-            logger.info('Search cancelled after subquery %d', i)
             break
         if r:
             if len(subqueries) > 1:
