@@ -367,5 +367,5 @@ python3.14 manage.py collectstatic --noinput
 
 ```bash
 tmux 
-gunicorn --workers 3 --graceful-timeout 3 --bind unix:/home/acs/backend/gunicorn.sock backend.wsgi:application
+gunicorn --workers 3 --graceful-timeout 3 --bind unix:/home/acs/backend/gunicorn.sock backend.wsgi:application --timeout 300
 ```

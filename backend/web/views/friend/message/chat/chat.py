@@ -16,7 +16,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from web.models.friend import Friend, Message, SystemPrompt
 from web.services.web_search import build_web_context_for_query
-from web.views.friend.message.cancel import register_cancel_event, clear_cancel_event
+from web.views.friend.message.cancel import register_cancel_event, clear_cancel_event, make_cancel_check
 from web.views.friend.message.chat.graph import ChatGraph
 from web.views.friend.message.memory.update import update_memory
 
@@ -94,14 +94,14 @@ class MessageChatView(APIView):
 
         web_context = ''
         if enable_web_search:
-            cancel_event = register_cancel_event(request.user.id)
+            search_id = register_cancel_event(request.user.id)
             try:
                 web_context = build_web_context_for_query(
                     message,
-                    cancel_check=cancel_event.is_set,
+                    cancel_check=make_cancel_check(search_id),
                 )
             finally:
-                clear_cancel_event(request.user.id)
+                clear_cancel_event(request.user.id, search_id)
 
         app = ChatGraph.create_app()
 

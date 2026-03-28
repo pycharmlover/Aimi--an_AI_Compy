@@ -19,7 +19,7 @@ from PIL import Image
 
 from web.models.friend import Friend
 from web.services.web_search import build_web_context_for_query
-from web.views.friend.message.cancel import register_cancel_event, clear_cancel_event
+from web.views.friend.message.cancel import register_cancel_event, clear_cancel_event, make_cancel_check
 from web.views.friend.message.chat.chat import parse_bool
 from web.views.friend.message.chat.graph import ChatGraph
 
@@ -84,15 +84,15 @@ class StreamVisionView(APIView):
 
         web_context = ''
         if enable_web_search:
-            cancel_event = register_cancel_event(request.user.id)
+            search_id = register_cancel_event(request.user.id)
             try:
                 search_query = _build_search_query_from_image(image_base64, text_prompt)
                 web_context = build_web_context_for_query(
                     search_query,
-                    cancel_check=cancel_event.is_set,
+                    cancel_check=make_cancel_check(search_id),
                 )
             finally:
-                clear_cancel_event(request.user.id)
+                clear_cancel_event(request.user.id, search_id)
 
         app = ChatGraph.create_app()
 

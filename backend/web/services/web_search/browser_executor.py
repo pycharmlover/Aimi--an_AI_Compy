@@ -89,7 +89,14 @@ def _build_search_answer_task(query: str) -> str:
 
 async def _run_browser_search_async(query: str, cancel_check=None) -> str:
     """每次搜索创建独立的 Browser 实例，避免复用导致的状态污染。"""
-    browser = Browser()
+    browser = Browser(
+        args=[
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+        ],
+    )
+
     agent_task = None
     try:
         llm = _build_browser_llm()
