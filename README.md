@@ -294,7 +294,7 @@ VOICE_URL=https://dashscope.aliyuncs.com/api/v1/services/audio/tts/customization
 > ```bash
 > npm run build
 > ```
-> 并将生成的 `assets/` 中的 JS / CSS 文件路径**手动更新**到 `backend/web/templates/index.html` 中对应的两处引用。
+> 并将生成的 `assets/` 中的 JS / CSS 文件路径**手动更新**到 `backend/web/templates/index.html` 中对应的两处引用。之后就不需要运行vue，直接通过运行后端python manage.py runserver即可在本地调试
 
 > **⚠️ 数据库迁移同步**
 >
