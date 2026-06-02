@@ -267,6 +267,7 @@ python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 ```
+第二次运行时只需要运行python manage.py runserver即可
 
 启动后访问 `http://127.0.0.1:8000/admin/` 可进入 Django 后台管理界面。
 
@@ -290,6 +291,10 @@ VOICE_URL=https://dashscope.aliyuncs.com/api/v1/services/audio/tts/customization
 
 > **⚠️ 前端构建同步**
 >
+> 第一次运行先
+>```bash
+> npm install
+>```
 > 每次修改 `frontend/` 下的代码后，需在 `frontend/` 目录执行：
 > ```bash
 > npm run build
